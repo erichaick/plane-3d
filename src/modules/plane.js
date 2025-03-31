@@ -68,6 +68,10 @@ export function createPlane() {
     cockpit.position.set(0, 0.1, 0.2);
     plane.add(cockpit);
     
+    // Set initial position higher and with a slight downward angle for better targeting
+    plane.position.y = 120; // Higher position to see more UFOs
+    plane.rotation.x = -0.1; // Slight downward angle to aim at UFOs
+    
     return plane;
 }
 
@@ -77,17 +81,17 @@ export function setupFlightControls() {
         pitch: 0,
         roll: 0,
         yaw: 0,
-        speed: 30,
-        targetSpeed: 30,
+        speed: 25, // Reduced from 30 for easier aiming
+        targetSpeed: 25,
         
         // Flight control parameters
         minSpeed: 10,
-        maxSpeed: 60,
-        pitchSensitivity: 1.5,
+        maxSpeed: 50, // Reduced from 60 for better control
+        pitchSensitivity: 1.8,
         rollSensitivity: 2.0,
-        turnSensitivity: 0.5,
-        autoLevelForce: 0.95,
-        maxPitchAngle: Math.PI / 4,
+        turnSensitivity: 1.0, // Increased for better turning
+        autoLevelForce: 0.97, // Increased for more stability
+        maxPitchAngle: Math.PI / 3,
         maxRollAngle: Math.PI / 3,
         
         // Camera mode
@@ -146,7 +150,7 @@ export function updatePlanePhysics(deltaTime, plane, flightControls) {
     plane.position.add(forward);
     
     // Prevent plane from going below ground
-    if (plane.position.y < 1) {
-        plane.position.y = 1;
+    if (plane.position.y < 5) {
+        plane.position.y = 5;
     }
 }

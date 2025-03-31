@@ -1,102 +1,131 @@
 import * as THREE from 'three';
-import { scene } from './scene.js';
 
-export function createExplosion(position) {
-    // Create particle system for explosion
-    const particleCount = 50;
-    const particles = new THREE.BufferGeometry();
+export function createExplosion(position, size = 1) {
+    const explosion = new THREE.Group();
+    explosion.position.copy(position);
     
-    const positions = new Float32Array(particleCount * 3);
-    const colors = new Float32Array(particleCount * 3);
-    const sizes = new Float32Array(particleCount);
+    // Explosion parameters
+    const particleCount = 30;
+    const explosionDuration = 1.5; // seconds
+    const maxExpansion = 10 * size;
     
-    const color = new THREE.Color();
+    // Create particles
+    const particles = [];
+    const particleGeometry = new THREE.SphereGeometry(0.3 * size, 8, 8);
     
+    // Different colors for explosion particles
+    const particleMaterials = [
+        new THREE.MeshBasicMaterial({ color: 0xff5500 }), // Orange
+        new THREE.MeshBasicMaterial({ color: 0xff0000 }), // Red
+        new THREE.MeshBasicMaterial({ color: 0xffff00 })  // Yellow
+    ];
+    
+    // Create point light for glow effect
+    const light = new THREE.PointLight(0xff5500, 5, 20 * size);
+    explosion.add(light);
+    
+    // Create particles in random directions
     for (let i = 0; i < particleCount; i++) {
-        // Random position within sphere
-        const x = (Math.random() - 0.5) * 2;
-        const y = (Math.random() - 0.5) * 2;
-        const z = (Math.random() - 0.5) * 2;
+        const particle = new THREE.Mesh(
+            particleGeometry,
+            particleMaterials[Math.floor(Math.random() * particleMaterials.length)]
+        );
         
-        positions[i * 3] = x;
-        positions[i * 3 + 1] = y;
-        positions[i * 3 + 2] = z;
+        // Random direction
+        const direction = new THREE.Vector3(
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2
+        ).normalize();
         
-        // Color gradient from yellow to red
-        const ratio = Math.random();
-        color.setHSL(0.1 - ratio * 0.1, 1.0, 0.5);
+        // Random speed
+        const speed = 2 + Math.random() * 8;
         
-        colors[i * 3] = color.r;
-        colors[i * 3 + 1] = color.g;
-        colors[i * 3 + 2] = color.b;
+        // Store particle data
+        particles.push({
+            mesh: particle,
+            direction: direction,
+            speed: speed,
+            rotationSpeed: Math.random() * 0.2 - 0.1
+        });
         
-        // Random size
-        sizes[i] = Math.random() * 2 + 1;
+        explosion.add(particle);
     }
     
-    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    particles.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    
-    const particleMaterial = new THREE.PointsMaterial({
-        size: 1,
-        vertexColors: true,
-        blending: THREE.AdditiveBlending,
+    // Add a central flash sphere
+    const flashGeometry = new THREE.SphereGeometry(2 * size, 16, 16);
+    const flashMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff,
         transparent: true,
-        sizeAttenuation: true
+        opacity: 1
     });
+    const flash = new THREE.Mesh(flashGeometry, flashMaterial);
+    explosion.add(flash);
     
-    const particleSystem = new THREE.Points(particles, particleMaterial);
-    particleSystem.position.copy(position);
+    // Time tracking
+    let elapsedTime = 0;
     
-    // Add to scene
-    scene.add(particleSystem);
-    
-    // Animate explosion
-    const explosionData = {
-        system: particleSystem,
-        velocity: [],
-        timeCreated: Date.now(),
-        update: function(deltaTime) {
-            const positions = particleSystem.geometry.attributes.position.array;
-            
-            // Initialize velocities if needed
-            if (this.velocity.length === 0) {
-                for (let i = 0; i < particleCount; i++) {
-                    this.velocity.push({
-                        x: (Math.random() - 0.5) * 10,
-                        y: (Math.random() - 0.5) * 10,
-                        z: (Math.random() - 0.5) * 10
-                    });
-                }
+    // Update function
+    explosion.update = function(deltaTime) {
+        elapsedTime += deltaTime;
+        
+        if (elapsedTime > explosionDuration) {
+            // Remove all particles
+            while (explosion.children.length > 0) {
+                const child = explosion.children[0];
+                explosion.remove(child);
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
             }
-            
-            // Update particle positions
-            for (let i = 0; i < particleCount; i++) {
-                positions[i * 3] += this.velocity[i].x * deltaTime;
-                positions[i * 3 + 1] += this.velocity[i].y * deltaTime;
-                positions[i * 3 + 2] += this.velocity[i].z * deltaTime;
-            }
-            
-            particleSystem.geometry.attributes.position.needsUpdate = true;
-            
-            // Fade out
-            const age = Date.now() - this.timeCreated;
-            if (age < 1000) {
-                particleSystem.material.opacity = 1.0;
-            } else {
-                particleSystem.material.opacity = 1.0 - (age - 1000) / 1000;
-            }
-            
-            // Remove when done
-            if (age > 2000) {
-                scene.remove(particleSystem);
-                return false;
-            }
-            
-            return true;
+            return false; // Explosion is complete
         }
+        
+        // Calculate progress (0 to 1)
+        const progress = elapsedTime / explosionDuration;
+        
+        // Update flash
+        if (flash) {
+            flash.scale.set(1 + progress * 3, 1 + progress * 3, 1 + progress * 3);
+            flash.material.opacity = 1 - (progress * 2); // Fade out faster than the duration
+            
+            if (flash.material.opacity <= 0) {
+                explosion.remove(flash);
+                flash.geometry.dispose();
+                flash.material.dispose();
+                flash = null;
+            }
+        }
+        
+        // Update light
+        if (light) {
+            light.intensity = 5 * (1 - progress);
+            light.distance = 20 * size * (1 + progress);
+        }
+        
+        // Update particles
+        for (let i = 0; i < particles.length; i++) {
+            const particle = particles[i];
+            
+            // Move particle outward
+            const distance = particle.speed * progress * maxExpansion;
+            particle.mesh.position.copy(particle.direction).multiplyScalar(distance);
+            
+            // Rotate particle
+            particle.mesh.rotation.x += particle.rotationSpeed;
+            particle.mesh.rotation.y += particle.rotationSpeed;
+            
+            // Shrink particle over time
+            const scale = 1 - (progress * 0.8);
+            particle.mesh.scale.set(scale, scale, scale);
+            
+            // Fade out particle
+            if (particle.mesh.material.opacity !== undefined) {
+                particle.mesh.material.opacity = 1 - progress;
+            }
+        }
+        
+        return true; // Explosion is still active
     };
     
-    return explosionData;
+    return explosion;
 }

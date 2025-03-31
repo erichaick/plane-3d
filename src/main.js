@@ -45,6 +45,7 @@ const ui = createUI(flightControls);
 
 // Animation loop with physics
 let lastTime = 0;
+// In your animation loop
 function animate(currentTime) {
     requestAnimationFrame(animate);
     
@@ -74,6 +75,7 @@ function animate(currentTime) {
     for (let i = gameState.explosions.length - 1; i >= 0; i--) {
         const stillActive = gameState.explosions[i].update(deltaTime);
         if (!stillActive) {
+            scene.remove(gameState.explosions[i]);
             gameState.explosions.splice(i, 1);
         }
     }
@@ -117,6 +119,24 @@ function updateCamera(deltaTime) {
         
         camera.lookAt(lookAtPosition);
     }
+    
+    // Animate UFOs
+    scene.traverse(object => {
+        if (object.userData && object.userData.bobSpeed) {
+            // Store original Y position if not already set
+            if (object.userData.originalY === 0) {
+                object.userData.originalY = object.position.y;
+            }
+            
+            // Bob up and down
+            object.position.y = object.userData.originalY + 
+                Math.sin(Date.now() * 0.001 * object.userData.bobSpeed) * 
+                object.userData.bobHeight;
+                
+            // Rotate slowly
+            object.rotation.y += object.userData.rotationSpeed * deltaTime;
+        }
+    });
 }
 
 // Handle window resize

@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { scene } from './scene.js';
-import { ufoManager } from './ufo.js';
 import { createExplosion } from './effects.js';
 import { gameState } from './gameState.js';
+import { ufoManager } from './ufo.js'; // Add this import
 import { ui } from './ui.js';
 
 export const shootingSystem = {
     bullets: [],
-    bulletSpeed: 100,
+    bulletSpeed: 120, // Increased from 100
     lastShootTime: 0,
-    shootInterval: 250, // ms between shots
+    shootInterval: 200, // Reduced from 250 for faster firing
     
     init(plane) {
         this.plane = plane;
@@ -66,7 +66,7 @@ export const shootingSystem = {
             let hitUFO = false;
             for (const ufo of ufoManager.ufos) {
                 const distance = bullet.position.distanceTo(ufo.position);
-                if (distance < 5) { // UFO hit radius
+                if (distance < 7) { // Increased from 5 for easier hits
                     hitUFO = true;
                     
                     // Damage UFO
@@ -92,7 +92,7 @@ export const shootingSystem = {
             
             // Remove bullet if it hit something or is too old
             const bulletAge = currentTime - bullet.userData.timeCreated;
-            if (hitUFO || bulletAge > 3000) {
+            if (hitUFO || bulletAge > 4000) { // Increased from 3000 for longer bullet life
                 scene.remove(bullet);
                 this.bullets.splice(i, 1);
             }

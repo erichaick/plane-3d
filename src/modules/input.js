@@ -3,10 +3,10 @@ import { orbitControls } from './scene.js';
 
 // Input state
 const keys = {
-    w: false,
-    s: false,
-    a: false,
-    d: false,
+    ArrowUp: false,
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false,
     q: false,
     e: false,
     c: false  // Camera toggle
@@ -14,17 +14,17 @@ const keys = {
 
 // Setup key listeners
 window.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() in keys) {
-        keys[e.key.toLowerCase()] = true;
+    if (e.key in keys) {
+        keys[e.key] = true;
     }
 });
 
 window.addEventListener('keyup', (e) => {
-    if (e.key.toLowerCase() in keys) {
-        keys[e.key.toLowerCase()] = false;
+    if (e.key in keys) {
+        keys[e.key] = false;
         
         // Camera toggle on key release to prevent multiple toggles
-        if (e.key.toLowerCase() === 'c') {
+        if (e.key === 'c') {
             flightControls.followCamera = !flightControls.followCamera;
             orbitControls.enabled = !flightControls.followCamera;
         }
@@ -33,28 +33,28 @@ window.addEventListener('keyup', (e) => {
 
 export const inputManager = {
     processFlightControls(deltaTime, flightControls) {
-        // Process pitch (W/S)
-        if (keys.w) {
-            flightControls.pitch = THREE.MathUtils.lerp(flightControls.pitch, -1, 0.1);
-        } else if (keys.s) {
-            flightControls.pitch = THREE.MathUtils.lerp(flightControls.pitch, 1, 0.1);
+        // Process pitch (Up/Down) - more responsive values
+        if (keys.ArrowUp) {
+            flightControls.pitch = THREE.MathUtils.lerp(flightControls.pitch, -1, 0.2);
+        } else if (keys.ArrowDown) {
+            flightControls.pitch = THREE.MathUtils.lerp(flightControls.pitch, 1, 0.2);
         } else {
-            // Auto-center pitch
-            flightControls.pitch *= 0.95;
+            // Auto-center pitch more quickly
+            flightControls.pitch *= 0.9;
         }
         
-        // Process roll (A/D)
-        if (keys.a) {
-            flightControls.roll = THREE.MathUtils.lerp(flightControls.roll, -1, 0.1);
-        } else if (keys.d) {
-            flightControls.roll = THREE.MathUtils.lerp(flightControls.roll, 1, 0.1);
+        // Process roll (Left/Right) - more responsive values
+        if (keys.ArrowLeft) {
+            flightControls.roll = THREE.MathUtils.lerp(flightControls.roll, -1, 0.2);
+        } else if (keys.ArrowRight) {
+            flightControls.roll = THREE.MathUtils.lerp(flightControls.roll, 1, 0.2);
         } else {
             // Auto-level roll
             flightControls.roll *= flightControls.autoLevelForce;
         }
         
-        // Calculate yaw from roll (with negative sign as specified)
-        flightControls.yaw = -flightControls.roll * flightControls.turnSensitivity * deltaTime;
+        // Calculate yaw from roll with increased effect
+        flightControls.yaw = -flightControls.roll * flightControls.turnSensitivity * 1.5 * deltaTime;
         
         // Process speed (Q/E)
         if (keys.q) {
